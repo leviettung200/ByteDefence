@@ -1,0 +1,393 @@
+"""
+BookStore GraphQL API Schema
+This schema defines the complete API for the BookStore application.
+"""
+
+"""
+Represents a book in the store.
+"""
+type Book {
+  """The unique identifier of the book."""
+  id: String!
+  
+  """The title of the book."""
+  title: String!
+  
+  """A description of the book."""
+  description: String
+  
+  """The ISBN of the book."""
+  isbn: String
+  
+  """The year the book was published."""
+  publishedYear: Int!
+  
+  """The current status of the book."""
+  status: BookStatus!
+  
+  """When the book was created."""
+  createdAt: DateTime!
+  
+  """When the book was last updated."""
+  updatedAt: DateTime!
+  
+  """The ID of the author."""
+  authorId: String!
+  
+  """The author of the book."""
+  author: Author
+  
+  """Reviews for this book."""
+  reviews(
+    where: ReviewFilterInput
+    order: [ReviewSortInput!]
+  ): [Review!]!
+  
+  """Custom resolver: Average rating for this book."""
+  averageRating: Float
+  
+  """Custom resolver: Total number of reviews for this book."""
+  reviewCount: Int!
+}
+
+"""
+Represents an author of books.
+"""
+type Author {
+  """The unique identifier of the author."""
+  id: String!
+  
+  """The name of the author."""
+  name: String!
+  
+  """A biography of the author."""
+  biography: String
+  
+  """When the author was created."""
+  createdAt: DateTime!
+  
+  """When the author was last updated."""
+  updatedAt: DateTime!
+  
+  """Books written by this author."""
+  books(
+    where: BookFilterInput
+    order: [BookSortInput!]
+  ): [Book!]!
+  
+  """Custom resolver: Total number of books by this author."""
+  bookCount: Int!
+}
+
+"""
+Represents a review of a book.
+"""
+type Review {
+  """The unique identifier of the review."""
+  id: String!
+  
+  """The title of the review."""
+  title: String!
+  
+  """The content of the review."""
+  content: String
+  
+  """The rating (1-5 stars)."""
+  rating: Int!
+  
+  """The name of the reviewer."""
+  reviewerName: String!
+  
+  """When the review was created."""
+  createdAt: DateTime!
+  
+  """When the review was last updated."""
+  updatedAt: DateTime!
+  
+  """The ID of the book being reviewed."""
+  bookId: String!
+  
+  """The book being reviewed."""
+  book: Book
+}
+
+"""
+The status of a book.
+"""
+enum BookStatus {
+  DRAFT
+  PUBLISHED
+  OUT_OF_PRINT
+  ARCHIVED
+}
+
+"""
+The root query type.
+"""
+type Query {
+  """Gets all books with optional filtering, sorting, and pagination."""
+  books(
+    where: BookFilterInput
+    order: [BookSortInput!]
+  ): [Book!]!
+  
+  """Gets a book by its unique identifier."""
+  bookById(id: String!): Book
+  
+  """Gets all authors with optional filtering, sorting, and pagination."""
+  authors(
+    where: AuthorFilterInput
+    order: [AuthorSortInput!]
+  ): [Author!]!
+  
+  """Gets an author by their unique identifier."""
+  authorById(id: String!): Author
+  
+  """Gets all reviews with optional filtering, sorting, and pagination."""
+  reviews(
+    where: ReviewFilterInput
+    order: [ReviewSortInput!]
+  ): [Review!]!
+  
+  """Demonstrates concurrent database queries."""
+  concurrentData: ConcurrentQueryResult!
+  
+  """Demonstrates error handling (set simulateError to true to trigger)."""
+  bookWithError(simulateError: Boolean!): Book!
+}
+
+"""
+Result of concurrent queries.
+"""
+type ConcurrentQueryResult {
+  books: [Book!]!
+  authors: [Author!]!
+  reviews: [Review!]!
+}
+
+"""
+The root mutation type. All mutations require authentication.
+"""
+type Mutation {
+  """Creates a new book. Requires authentication."""
+  createBook(input: CreateBookInput!): BookPayload! @authorize
+  
+  """Updates an existing book. Requires authentication."""
+  updateBook(input: UpdateBookInput!): BookPayload! @authorize
+  
+  """Deletes a book. Requires authentication."""
+  deleteBook(id: String!): DeletePayload! @authorize
+  
+  """Creates a new author. Requires authentication."""
+  createAuthor(input: CreateAuthorInput!): AuthorPayload! @authorize
+  
+  """Creates a new review for a book. Requires authentication."""
+  createReview(input: CreateReviewInput!): ReviewPayload! @authorize
+}
+
+"""
+Input type for creating a book.
+"""
+input CreateBookInput {
+  title: String!
+  description: String
+  isbn: String
+  publishedYear: Int!
+  authorId: String!
+  status: BookStatus
+}
+
+"""
+Input type for updating a book.
+"""
+input UpdateBookInput {
+  id: String!
+  title: String
+  description: String
+  isbn: String
+  publishedYear: Int
+  authorId: String
+  status: BookStatus
+}
+
+"""
+Input type for creating an author.
+"""
+input CreateAuthorInput {
+  name: String!
+  biography: String
+}
+
+"""
+Input type for creating a review.
+"""
+input CreateReviewInput {
+  bookId: String!
+  title: String!
+  content: String
+  rating: Int!
+  reviewerName: String!
+}
+
+"""
+Payload returned from book operations.
+"""
+type BookPayload {
+  book: Book
+  errors: [UserError!]!
+}
+
+"""
+Payload returned from author operations.
+"""
+type AuthorPayload {
+  author: Author
+  errors: [UserError!]!
+}
+
+"""
+Payload returned from review operations.
+"""
+type ReviewPayload {
+  review: Review
+  errors: [UserError!]!
+}
+
+"""
+Payload returned from delete operations.
+"""
+type DeletePayload {
+  success: Boolean!
+  errors: [UserError!]!
+}
+
+"""
+Represents an error from a mutation.
+"""
+type UserError {
+  message: String!
+  code: String!
+}
+
+"""
+The root subscription type for real-time updates.
+"""
+type Subscription {
+  """Subscribes to new book creation events."""
+  onBookCreated: Book!
+  
+  """Subscribes to book update events."""
+  onBookUpdated: Book!
+  
+  """Subscribes to book deletion events."""
+  onBookDeleted: String!
+  
+  """Subscribes to new review events."""
+  onReviewAdded: Review!
+}
+
+"""
+Filter input for books.
+"""
+input BookFilterInput {
+  and: [BookFilterInput!]
+  or: [BookFilterInput!]
+  id: StringOperationFilterInput
+  title: StringOperationFilterInput
+  status: BookStatusOperationFilterInput
+  publishedYear: IntOperationFilterInput
+  authorId: StringOperationFilterInput
+}
+
+"""
+Sort input for books.
+"""
+input BookSortInput {
+  id: SortEnumType
+  title: SortEnumType
+  publishedYear: SortEnumType
+  status: SortEnumType
+  createdAt: SortEnumType
+  updatedAt: SortEnumType
+}
+
+"""
+Filter input for authors.
+"""
+input AuthorFilterInput {
+  and: [AuthorFilterInput!]
+  or: [AuthorFilterInput!]
+  id: StringOperationFilterInput
+  name: StringOperationFilterInput
+}
+
+"""
+Sort input for authors.
+"""
+input AuthorSortInput {
+  id: SortEnumType
+  name: SortEnumType
+  createdAt: SortEnumType
+  updatedAt: SortEnumType
+}
+
+"""
+Filter input for reviews.
+"""
+input ReviewFilterInput {
+  and: [ReviewFilterInput!]
+  or: [ReviewFilterInput!]
+  id: StringOperationFilterInput
+  bookId: StringOperationFilterInput
+  rating: IntOperationFilterInput
+  reviewerName: StringOperationFilterInput
+}
+
+"""
+Sort input for reviews.
+"""
+input ReviewSortInput {
+  id: SortEnumType
+  rating: SortEnumType
+  createdAt: SortEnumType
+  updatedAt: SortEnumType
+}
+
+input StringOperationFilterInput {
+  eq: String
+  neq: String
+  contains: String
+  startsWith: String
+  endsWith: String
+}
+
+input IntOperationFilterInput {
+  eq: Int
+  neq: Int
+  gt: Int
+  gte: Int
+  lt: Int
+  lte: Int
+}
+
+input BookStatusOperationFilterInput {
+  eq: BookStatus
+  neq: BookStatus
+  in: [BookStatus!]
+  nin: [BookStatus!]
+}
+
+enum SortEnumType {
+  ASC
+  DESC
+}
+
+"""
+The @authorize directive enforces authentication for a field or type.
+"""
+directive @authorize on FIELD_DEFINITION | OBJECT
+
+"""
+DateTime scalar type.
+"""
+scalar DateTime

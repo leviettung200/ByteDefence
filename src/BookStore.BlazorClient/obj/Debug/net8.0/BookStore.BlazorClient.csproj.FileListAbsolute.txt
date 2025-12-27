@@ -1054,9 +1054,6 @@
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/bb6kwiup02-{0}-tptq2av103-tptq2av103.gz
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/otu4fqpu2u-{0}-lfu7j35m59-lfu7j35m59.gz
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/z07yhj896b-{0}-oyz0vx2fzb-oyz0vx2fzb.gz
-/home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/capoq7soqa-{0}-kj7sfbeosr-kj7sfbeosr.gz
-/home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/ldizihq1xk-{0}-nwn4xxqa1k-nwn4xxqa1k.gz
-/home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/733ejwuhm2-{0}-dduii9rzdj-dduii9rzdj.gz
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/staticwebassets.build.json
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/staticwebassets.build.json.cache
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/staticwebassets.development.json
@@ -1067,3 +1064,6 @@
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/refint/BookStore.BlazorClient.dll
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/BookStore.BlazorClient.pdb
 /home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/ref/BookStore.BlazorClient.dll
+/home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/capoq7soqa-{0}-lfvqz14a8m-lfvqz14a8m.gz
+/home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/ldizihq1xk-{0}-76imkqtlbp-76imkqtlbp.gz
+/home/runner/work/ByteDefence/ByteDefence/src/BookStore.BlazorClient/obj/Debug/net8.0/compressed/733ejwuhm2-{0}-sj9p084mpg-sj9p084mpg.gz

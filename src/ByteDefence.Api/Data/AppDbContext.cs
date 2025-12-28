@@ -6,10 +6,9 @@ namespace ByteDefence.Api.Data;
 public class AppDbContext : DbContext
 {
     // Pre-computed BCrypt hashes for seed data (work factor: 12)
-    // admin123 hash
-    private const string AdminPasswordHash = "$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/X4.OLPe0QNGQkQUPa";
-    // user123 hash
-    private const string UserPasswordHash = "$2a$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi";
+    // Generated using: UserService.HashPassword("admin123") and UserService.HashPassword("user123")
+    private const string AdminPasswordHash = "$2a$12$WNU9z.aKbSlumbr3lgCw8OL4Ut1YAcvZsr2DTIP8FCteLOnoKr/C2";
+    private const string UserPasswordHash = "$2a$12$D49iR6qTfTsHIjrDsGasOu2yhGV2KjXBI2Fzry7JsobhCSV9dIr2i";
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
     {

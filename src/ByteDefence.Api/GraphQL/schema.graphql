@@ -1,0 +1,97 @@
+scalar DateTime
+scalar Decimal
+
+type Query {
+  orders: [Order!]!
+  order(id: ID!): Order
+  orderStats: OrderStatistics!
+  me: User!
+}
+
+type Mutation {
+  createOrder(input: CreateOrderInput!): Order!
+  updateOrder(input: UpdateOrderInput!): Order!
+  deleteOrder(id: ID!): Boolean!
+  addOrderItem(input: AddOrderItemInput!): Order!
+}
+
+type OrderStatistics {
+  draft: Int!
+  pending: Int!
+  approved: Int!
+  completed: Int!
+  cancelled: Int!
+  total: Int!
+}
+
+type Order {
+  id: ID!
+  title: String!
+  status: OrderStatus!
+  items: [OrderItem!]!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+  createdBy: User
+  total: Decimal!
+}
+
+type OrderItem {
+  id: ID!
+  name: String!
+  quantity: Int!
+  price: Decimal!
+  lineTotal: Decimal!
+}
+
+type User {
+  id: ID!
+  username: String!
+  displayName: String!
+  role: UserRole!
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  COMPLETED
+  CANCELLED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+input CreateOrderInput {
+  title: String!
+  status: OrderStatus = DRAFT
+  items: [CreateOrderItemInput!]!
+}
+
+input CreateOrderItemInput {
+  name: String!
+  quantity: Int!
+  price: Decimal!
+}
+
+input UpdateOrderInput {
+  id: ID!
+  title: String!
+  status: OrderStatus!
+  items: [UpdateOrderItemInput!]!
+}
+
+input UpdateOrderItemInput {
+  id: ID!
+  name: String!
+  quantity: Int!
+  price: Decimal!
+}
+
+input AddOrderItemInput {
+  orderId: ID!
+  name: String!
+  quantity: Int!
+  price: Decimal!
+}

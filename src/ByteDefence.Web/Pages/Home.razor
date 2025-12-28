@@ -1,0 +1,14 @@
+﻿@page "/"
+
+<PageTitle>Orders</PageTitle>
+
+<h1>ByteDefence Orders</h1>
+
+<p>This UI uses the GraphQL API secured with bearer tokens. Use the navigation to view orders.</p>
+
+<button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/orders")'>View orders</button>
+<button class="btn btn-link" @onclick='() => Navigation.NavigateTo("/login")'>Login</button>
+
+@code {
+	[Inject] private NavigationManager Navigation { get; set; } = default!;
+}

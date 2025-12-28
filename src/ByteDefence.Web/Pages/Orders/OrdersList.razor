@@ -1,0 +1,116 @@
+@page "/orders"
+@attribute [Authorize]
+@inject OrderApiClient Api
+@inject NavigationManager Nav
+@inject SignalRService SignalR
+
+<h1>Orders</h1>
+
+@if (loading)
+{
+    <p>Loading orders...</p>
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else
+{
+    <div class="stats">
+        <div class="stat">Draft: @stats.Draft</div>
+        <div class="stat">Pending: @stats.Pending</div>
+        <div class="stat">Approved: @stats.Approved</div>
+        <div class="stat">Completed: @stats.Completed</div>
+        <div class="stat">Cancelled: @stats.Cancelled</div>
+    </div>
+
+    <button class="btn btn-primary" @onclick='() => Nav.NavigateTo("/orders/new")'>Create Order</button>
+
+    <table class="table table-striped mt-3">
+        <thead>
+        <tr>
+            <th>Title</th>
+            <th>Status</th>
+            <th>Updated</th>
+            <th>Total</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        @if (orders.Count == 0)
+        {
+            <tr><td colspan="5">No orders yet.</td></tr>
+        }
+        else
+        {
+            @foreach (var order in orders)
+            {
+                <tr>
+                    <td>@order.Title</td>
+                    <td>@order.Status</td>
+                    <td>@order.UpdatedAt.ToLocalTime().ToString("g")</td>
+                    <td>@order.Total.ToString("C")</td>
+                    <td>
+                        <button class="btn btn-link" @onclick='() => Nav.NavigateTo($"/orders/{order.Id}")'>View</button>
+                    </td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Order> orders = new();
+    private OrderStatistics stats = new();
+    private bool loading = true;
+    private string? error;
+    private bool signalRConfigured;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+        await EnsureSignalRAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            var result = await Api.GetOrdersAsync();
+            orders = result.Orders.ToList();
+            stats = result.Stats;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+
+    private async Task EnsureSignalRAsync()
+    {
+        if (signalRConfigured)
+        {
+            return;
+        }
+
+        try
+        {
+            await SignalR.StartAsync();
+            SignalR.Connection.On<Order>("OrderCreated", async _ => await LoadAsync());
+            SignalR.Connection.On<Order>("OrderUpdated", async _ => await LoadAsync());
+            SignalR.Connection.On<object>("OrderDeleted", async _ => await LoadAsync());
+            signalRConfigured = true;
+        }
+        catch
+        {
+            // Ignore real-time errors for now
+        }
+    }
+}

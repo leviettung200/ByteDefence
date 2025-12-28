@@ -1,0 +1,56 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/ByteDefence.Api/Dockerfile
+    container_name: api
+    ports:
+      - "7071:80"
+    environment:
+      AzureWebJobsStorage: UseDevelopmentStorage=true
+      FUNCTIONS_WORKER_RUNTIME: dotnet-isolated
+      ASPNETCORE_URLS: http://+:80
+      Jwt__Secret: dev-secret-change-me
+      Jwt__Issuer: bytedefence-docker
+      Jwt__Audience: bytedefence-clients
+      Jwt__ExpiryMinutes: 90
+      SignalR__Mode: Local
+      SignalR__HubUrl: http://signalr:5000
+      UseCosmosDb: false
+    depends_on:
+      - signalr
+    networks:
+      - bytedefence
+
+  signalr:
+    build:
+      context: .
+      dockerfile: src/ByteDefence.SignalR/Dockerfile
+    container_name: signalr
+    ports:
+      - "5000:5000"
+    environment:
+      ASPNETCORE_URLS: http://+:5000
+      AllowedOrigins__0: http://localhost:8080
+      AllowedOrigins__1: http://web
+    networks:
+      - bytedefence
+
+  web:
+    build:
+      context: .
+      dockerfile: src/ByteDefence.Web/Dockerfile
+    container_name: web
+    ports:
+      - "8080:80"
+    depends_on:
+      - api
+      - signalr
+    networks:
+      - bytedefence
+
+networks:
+  bytedefence:
+    driver: bridge

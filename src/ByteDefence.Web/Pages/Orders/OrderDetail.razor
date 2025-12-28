@@ -1,0 +1,127 @@
+@page "/orders/{Id}"
+@attribute [Authorize]
+@inject OrderApiClient Api
+@inject NavigationManager Nav
+@inject SignalRService SignalR
+@implements IAsyncDisposable
+
+<h1>Order detail</h1>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (order is null)
+{
+    <p>Order not found.</p>
+}
+else
+{
+    <div class="mb-2">
+        <strong>@order.Title</strong>
+        <div>Status: @order.Status</div>
+        <div>Total: @order.Total.ToString("C")</div>
+        <div>Updated: @order.UpdatedAt.ToLocalTime().ToString("g")</div>
+    </div>
+
+    @if (updatedRemotely)
+    {
+        <div class="alert alert-info">
+            Updated remotely. <button class="btn btn-link" @onclick="Load">Refresh</button>
+        </div>
+    }
+
+    <button class="btn btn-secondary" @onclick='() => Nav.NavigateTo($"/orders/{Id}/edit")'>Edit</button>
+
+    <h3 class="mt-3">Items</h3>
+    <table class="table table-sm">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var item in order.Items)
+        {
+            <tr>
+                <td>@item.Name</td>
+                <td>@item.Quantity</td>
+                <td>@item.Price.ToString("C")</td>
+                <td>@(item.Price * item.Quantity).ToString("C")</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter] public string Id { get; set; } = string.Empty;
+
+    private Order? order;
+    private bool loading = true;
+    private string? error;
+    private bool updatedRemotely;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await Load();
+        await ConfigureSignalR();
+    }
+
+    private async Task Load()
+    {
+        loading = true;
+        error = null;
+        try
+        {
+            order = await Api.GetOrderAsync(Id);
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally
+        {
+            loading = false;
+            updatedRemotely = false;
+        }
+    }
+
+    private async Task ConfigureSignalR()
+    {
+        try
+        {
+            await SignalR.StartAsync();
+            await SignalR.JoinOrderGroupAsync(Id);
+            SignalR.Connection.On<Order>("OrderUpdated", async updated =>
+            {
+                if (updated.Id == Id)
+                {
+                    updatedRemotely = true;
+                    await InvokeAsync(StateHasChanged);
+                }
+            });
+            SignalR.Connection.On<object>("OrderDeleted", async payload =>
+            {
+                updatedRemotely = true;
+                await InvokeAsync(StateHasChanged);
+            });
+        }
+        catch
+        {
+            // ignore real-time errors
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await SignalR.LeaveOrderGroupAsync(Id);
+    }
+}

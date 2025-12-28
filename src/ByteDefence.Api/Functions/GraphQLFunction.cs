@@ -33,9 +33,19 @@ public class GraphQLFunction
 
     [Function("graphql")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "graphql")] HttpRequestData req)
+        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options", Route = "graphql")] HttpRequestData req)
     {
         _logger.LogInformation("GraphQL request received");
+
+        // Short-circuit CORS preflight
+        if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            var preflight = req.CreateResponse(HttpStatusCode.OK);
+            preflight.Headers.Add("Access-Control-Allow-Origin", "*");
+            preflight.Headers.Add("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+            preflight.Headers.Add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+            return preflight;
+        }
 
         // Handle GET requests for GraphQL Playground/Banana Cake Pop
         if (req.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
@@ -53,6 +63,7 @@ public class GraphQLFunction
         if (request == null || string.IsNullOrEmpty(request.Query))
         {
             var badResponse = req.CreateResponse(HttpStatusCode.BadRequest);
+            AddCorsHeaders(badResponse);
             await badResponse.WriteAsJsonAsync(new { errors = new[] { new { message = "Invalid GraphQL request" } } });
             return badResponse;
         }
@@ -74,7 +85,8 @@ public class GraphQLFunction
 
         if (request.Variables != null)
         {
-            requestBuilder.SetVariableValues(request.Variables);
+            var normalized = NormalizeVariables(request.Variables);
+            requestBuilder.SetVariableValues(normalized);
         }
 
         // Set user context for authorization
@@ -89,6 +101,7 @@ public class GraphQLFunction
         // Create the response
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
+        AddCorsHeaders(response);
 
         // Serialize the result
         await using var stream = new MemoryStream();
@@ -146,6 +159,7 @@ public class GraphQLFunction
     {
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
+        AddCorsHeaders(response);
 
         var info = new
         {
@@ -163,6 +177,90 @@ public class GraphQLFunction
 
         await response.WriteAsJsonAsync(info);
         return response;
+    }
+
+    private static void AddCorsHeaders(HttpResponseData response)
+    {
+        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type,Authorization");
+        response.Headers.Add("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+    }
+
+    private static IReadOnlyDictionary<string, object?> NormalizeVariables(Dictionary<string, object?> variables)
+    {
+        var result = new Dictionary<string, object?>(StringComparer.Ordinal);
+        foreach (var kvp in variables)
+        {
+            result[kvp.Key] = ConvertValue(kvp.Value);
+        }
+        return result;
+    }
+
+    private static object? ConvertValue(object? value)
+    {
+        if (value is null)
+            return null;
+
+        if (value is JsonElement je)
+        {
+            return ConvertJsonElement(je);
+        }
+
+        if (value is Dictionary<string, object?> dict)
+        {
+            var converted = new Dictionary<string, object?>(StringComparer.Ordinal);
+            foreach (var kv in dict)
+            {
+                converted[kv.Key] = ConvertValue(kv.Value);
+            }
+            return converted;
+        }
+
+        if (value is IEnumerable<object?> list)
+        {
+            return list.Select(ConvertValue).ToList();
+        }
+
+        return value;
+    }
+
+    private static object? ConvertJsonElement(JsonElement je)
+    {
+        switch (je.ValueKind)
+        {
+            case JsonValueKind.Null:
+                return null;
+            case JsonValueKind.String:
+                return je.GetString();
+            case JsonValueKind.True:
+                return true;
+            case JsonValueKind.False:
+                return false;
+            case JsonValueKind.Number:
+                if (je.TryGetInt64(out var l)) return l;
+                if (je.TryGetDecimal(out var d)) return d;
+                return je.GetDouble();
+            case JsonValueKind.Object:
+            {
+                var obj = new Dictionary<string, object?>(StringComparer.Ordinal);
+                foreach (var prop in je.EnumerateObject())
+                {
+                    obj[prop.Name] = ConvertJsonElement(prop.Value);
+                }
+                return obj;
+            }
+            case JsonValueKind.Array:
+            {
+                var list = new List<object?>();
+                foreach (var item in je.EnumerateArray())
+                {
+                    list.Add(ConvertJsonElement(item));
+                }
+                return list;
+            }
+            default:
+                return je.ToString();
+        }
     }
 }
 

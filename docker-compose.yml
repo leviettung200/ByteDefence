@@ -37,7 +37,7 @@ services:
       context: .
       dockerfile: src/ByteDefence.Web/Dockerfile
     ports:
-      - "5001:80"
+      - "8080:80"
     environment:
       - Api__Url=http://localhost:7071/api/graphql
       - SignalR__HubUrl=http://localhost:5000/hubs/notifications

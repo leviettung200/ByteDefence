@@ -37,11 +37,13 @@ public class OrderMutationResolver
 
     /// <summary>
     /// Update an existing order.
+    /// Only the order owner or an admin can update the order.
     /// </summary>
     public async Task<UpdateOrderPayload> UpdateOrder(
         UpdateOrderInput input,
         [Service] IOrderService orderService,
-        [GlobalState("CurrentUser")] string? userId)
+        [GlobalState("CurrentUser")] string? userId,
+        [GlobalState("CurrentRole")] string? role)
     {
         if (string.IsNullOrEmpty(userId))
         {
@@ -55,11 +57,20 @@ public class OrderMutationResolver
 
         try
         {
-            var order = await orderService.UpdateAsync(input.Id, input.Title, input.Description, input.Status);
-            if (order == null)
+            // Check ownership before updating
+            var existingOrder = await orderService.GetByIdAsync(input.Id);
+            if (existingOrder == null)
             {
                 return new UpdateOrderPayload(null, $"Order {input.Id} not found");
             }
+
+            // Authorization check: must be owner or admin
+            if (role != "Admin" && existingOrder.CreatedById != userId)
+            {
+                return new UpdateOrderPayload(null, "You can only update your own orders");
+            }
+
+            var order = await orderService.UpdateAsync(input.Id, input.Title, input.Description, input.Status);
             return new UpdateOrderPayload(order);
         }
         catch (Exception ex)
@@ -74,7 +85,8 @@ public class OrderMutationResolver
     public async Task<DeleteOrderPayload> DeleteOrder(
         string id,
         [Service] IOrderService orderService,
-        [GlobalState("CurrentUser")] string? userId)
+        [GlobalState("CurrentUser")] string? userId,
+        [GlobalState("CurrentRole")] string? role)
     {
         if (string.IsNullOrEmpty(userId))
         {
@@ -84,6 +96,12 @@ public class OrderMutationResolver
         if (string.IsNullOrWhiteSpace(id))
         {
             return new DeleteOrderPayload(false, "Order ID is required");
+        }
+
+        // Admin-only check
+        if (role != "Admin")
+        {
+            return new DeleteOrderPayload(false, "Only administrators can delete orders");
         }
 
         try
@@ -103,11 +121,13 @@ public class OrderMutationResolver
 
     /// <summary>
     /// Add an item to an existing order.
+    /// Only the order owner or an admin can add items.
     /// </summary>
     public async Task<AddOrderItemPayload> AddOrderItem(
         AddOrderItemInput input,
         [Service] IOrderService orderService,
-        [GlobalState("CurrentUser")] string? userId)
+        [GlobalState("CurrentUser")] string? userId,
+        [GlobalState("CurrentRole")] string? role)
     {
         if (string.IsNullOrEmpty(userId))
         {
@@ -136,6 +156,19 @@ public class OrderMutationResolver
 
         try
         {
+            // Check ownership before adding item
+            var order = await orderService.GetByIdAsync(input.OrderId);
+            if (order == null)
+            {
+                return new AddOrderItemPayload(null, $"Order {input.OrderId} not found");
+            }
+
+            // Authorization check: must be owner or admin
+            if (role != "Admin" && order.CreatedById != userId)
+            {
+                return new AddOrderItemPayload(null, "You can only add items to your own orders");
+            }
+
             var item = await orderService.AddItemAsync(input.OrderId, input.Name, input.Quantity, input.Price);
             return new AddOrderItemPayload(item);
         }
@@ -147,11 +180,13 @@ public class OrderMutationResolver
 
     /// <summary>
     /// Remove an item from an order.
+    /// Only the order owner or an admin can remove items.
     /// </summary>
     public async Task<RemoveOrderItemPayload> RemoveOrderItem(
         string itemId,
         [Service] IOrderService orderService,
-        [GlobalState("CurrentUser")] string? userId)
+        [GlobalState("CurrentUser")] string? userId,
+        [GlobalState("CurrentRole")] string? role)
     {
         if (string.IsNullOrEmpty(userId))
         {
@@ -165,6 +200,19 @@ public class OrderMutationResolver
 
         try
         {
+            // Check ownership before removing item
+            var ownerId = await orderService.GetOrderOwnerByItemIdAsync(itemId);
+            if (ownerId == null)
+            {
+                return new RemoveOrderItemPayload(false, $"Item {itemId} not found");
+            }
+
+            // Authorization check: must be owner or admin
+            if (role != "Admin" && ownerId != userId)
+            {
+                return new RemoveOrderItemPayload(false, "You can only remove items from your own orders");
+            }
+
             var success = await orderService.RemoveItemAsync(itemId);
             if (!success)
             {
@@ -178,3 +226,4 @@ public class OrderMutationResolver
         }
     }
 }
+

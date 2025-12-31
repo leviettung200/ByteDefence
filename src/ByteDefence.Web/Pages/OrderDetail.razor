@@ -136,11 +136,10 @@
                 <div class="status-card">
                     <h3>Update Status</h3>
                     <select @bind="_selectedStatus" class="form-control">
-                        <option value="Draft">Draft</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
+                        @foreach (var status in Enum.GetValues<OrderStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
                     </select>
                     <button class="btn btn-primary" @onclick="UpdateStatus" disabled="@_isUpdating">
                         @if (_isUpdating) { <span>Updating...</span> } else { <span>Update Status</span> }
@@ -408,7 +407,14 @@
             _order = response?.Order;
             if (_order != null)
             {
-                _selectedStatus = _order.Status;
+                if (Enum.TryParse<OrderStatus>(_order.Status, true, out var parsed))
+                {
+                    _selectedStatus = parsed.ToString();
+                }
+                else
+                {
+                    _selectedStatus = _order.Status;
+                }
             }
         }
         catch (Exception ex)

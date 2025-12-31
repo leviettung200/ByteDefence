@@ -11,4 +11,10 @@ public interface IOrderService
     Task<bool> DeleteAsync(string id);
     Task<OrderItem> AddItemAsync(string orderId, string name, int quantity, decimal price);
     Task<bool> RemoveItemAsync(string itemId);
+
+    /// <summary>
+    /// Gets the owner user ID for an order item (used for authorization checks).
+    /// </summary>
+    Task<string?> GetOrderOwnerByItemIdAsync(string itemId);
 }
+

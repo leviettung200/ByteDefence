@@ -123,4 +123,17 @@ public class OrderService(AppDbContext context, INotificationService notificatio
 
         return true;
     }
+
+    /// <summary>
+    /// Gets the owner user ID for an order item by looking up the parent order.
+    /// </summary>
+    public async Task<string?> GetOrderOwnerByItemIdAsync(string itemId)
+    {
+        var item = await _context.OrderItems
+            .Include(i => i.Order)
+            .FirstOrDefaultAsync(i => i.Id == itemId);
+
+        return item?.Order?.CreatedById;
+    }
 }
+

@@ -32,30 +32,29 @@
         <div class="form-card">
             <EditForm Model="@_model" OnValidSubmit="HandleSubmit">
                 <DataAnnotationsValidator />
-                
+
                 <div class="form-group">
                     <label for="title">Title *</label>
                     <InputText id="title" class="form-control" @bind-Value="_model.Title" placeholder="Enter order title" />
                     <ValidationMessage For="@(() => _model.Title)" />
                 </div>
-                
+
                 <div class="form-group">
                     <label for="description">Description</label>
-                    <InputTextArea id="description" class="form-control" @bind-Value="_model.Description" 
+                    <InputTextArea id="description" class="form-control" @bind-Value="_model.Description"
                         placeholder="Enter order description" rows="4" />
                 </div>
 
                 <div class="form-group">
                     <label for="status">Status</label>
                     <InputSelect id="status" class="form-control" @bind-Value="_model.Status">
-                        <option value="Draft">Draft</option>
-                        <option value="Pending">Pending</option>
-                        <option value="Approved">Approved</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Cancelled">Cancelled</option>
+                        @foreach (var status in Enum.GetValues<OrderStatus>())
+                        {
+                            <option value="@status">@status</option>
+                        }
                     </InputSelect>
                 </div>
-                
+
                 <div class="form-actions">
                     <button type="button" class="btn btn-secondary" @onclick="GoBack">Cancel</button>
                     <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
@@ -101,7 +100,7 @@
         background: white;
         border-radius: 8px;
         padding: 2rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
     .form-group {
@@ -205,7 +204,9 @@
     }
 
     @@keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+            transform: rotate(360deg);
+        }
     }
 </style>
 
@@ -233,15 +234,19 @@
         {
             var response = await OrderService.GetOrderAsync(Id);
             _order = response?.Order;
-            
+
             if (_order != null)
             {
                 _model = new EditOrderModel
+                    {
+                        Title = _order.Title,
+                        Description = _order.Description
+                    };
+
+                if (Enum.TryParse<OrderStatus>(_order.Status, true, out var status))
                 {
-                    Title = _order.Title,
-                    Description = _order.Description,
-                    Status = _order.Status
-                };
+                    _model.Status = status;
+                }
             }
             else
             {
@@ -265,32 +270,31 @@
 
         try
         {
-            var status = Enum.Parse<OrderStatus>(_model.Status);
-            var response = await OrderService.UpdateOrderAsync(Id, _model.Title, _model.Description, status);
-            
-                if (response?.UpdateOrder?.Order != null)
+            var response = await OrderService.UpdateOrderAsync(Id, _model.Title, _model.Description, _model.Status);
+
+            if (response?.UpdateOrder?.Order != null)
+            {
+                // Update the local state
+                if (_order != null)
                 {
-                    // Update the local state
-                    if (_order != null)
+                    var updatedOrder = response.UpdateOrder.Order;
+                    // Preserve items if not returned/updated
+                    if (updatedOrder.Items == null || !updatedOrder.Items.Any())
                     {
-                        var updatedOrder = response.UpdateOrder.Order;
-                        // Preserve items if not returned/updated
-                        if (updatedOrder.Items == null || !updatedOrder.Items.Any())
-                        {
-                            updatedOrder.Items = _order.Items;
-                        }
-                        // Preserve creator info if not returned/updated
-                        if (updatedOrder.CreatedBy == null)
-                        {
-                            updatedOrder.CreatedBy = _order.CreatedBy;
-                        }
+                        updatedOrder.Items = _order.Items;
                     }
-                    Navigation.NavigateTo($"/orders/{Id}");
+                    // Preserve creator info if not returned/updated
+                    if (updatedOrder.CreatedBy == null)
+                    {
+                        updatedOrder.CreatedBy = _order.CreatedBy;
+                    }
                 }
-                else
-                {
-                    _error = response?.UpdateOrder?.ErrorMessage ?? "Failed to update order";
-                }
+                Navigation.NavigateTo($"/orders/{Id}");
+            }
+            else
+            {
+                _error = response?.UpdateOrder?.ErrorMessage ?? "Failed to update order";
+            }
         }
         catch (Exception ex)
         {
@@ -311,6 +315,6 @@
     {
         public string Title { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public string Status { get; set; } = "Draft";
+        public OrderStatus Status { get; set; } = OrderStatus.Draft;
     }
 }

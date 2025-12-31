@@ -29,10 +29,10 @@ public abstract class GraphQLIntegrationTestBase : IDisposable
     protected GraphQLIntegrationTestBase()
     {
         var services = new ServiceCollection();
-        
+
         // Add logging services
         services.AddLogging();
-        
+
         // Configure in-memory configuration
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -49,7 +49,7 @@ public abstract class GraphQLIntegrationTestBase : IDisposable
         var dbName = $"ByteDefence_Test_{Guid.NewGuid()}";
         services.AddDbContext<AppDbContext>(options =>
             options.UseInMemoryDatabase(databaseName: dbName), ServiceLifetime.Singleton);
-        
+
         // Also register DbContextFactory for parallel query support
         services.AddDbContextFactory<AppDbContext>(options =>
             options.UseInMemoryDatabase(databaseName: dbName), ServiceLifetime.Singleton);
@@ -78,11 +78,11 @@ public abstract class GraphQLIntegrationTestBase : IDisposable
         ServiceProvider = services.BuildServiceProvider();
         DbContext = ServiceProvider.GetRequiredService<AppDbContext>();
         AuthService = ServiceProvider.GetRequiredService<IAuthService>();
-        
+
         // Ensure database is created and seed test data manually
         DbContext.Database.EnsureCreated();
         SeedTestData();
-        
+
         // Get executor
         var executorResolver = ServiceProvider.GetRequiredService<IRequestExecutorResolver>();
         Executor = executorResolver.GetRequestExecutorAsync().GetAwaiter().GetResult();
@@ -199,6 +199,15 @@ public abstract class GraphQLIntegrationTestBase : IDisposable
         var requestBuilder = OperationRequestBuilder.New()
             .SetDocument(query)
             .SetGlobalState("CurrentUser", userId);
+
+        // Fetch user from database to set role
+        // We use GetAwaiter().GetResult() or Find() synchronously if we want, but FindAsync is better.
+        // However, we are in an async method.
+        var user = await DbContext.Users.FindAsync(userId);
+        if (user != null)
+        {
+            requestBuilder.SetGlobalState("CurrentRole", user.Role.ToString());
+        }
 
         if (variables != null)
         {

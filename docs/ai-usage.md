@@ -104,3 +104,5 @@ Save this as @[docs/verification-report.md]
 ## 7. Self Validate Implementation
 *Manual review: Code review of implemented features to verify they match specifications, follow standards, and manual testing core features.*
 
+## 8. Recent AI sessions
+- 2026-01-02: Prompted the agent to "explain project from top-down components (lowest is function/method level)" and captured the walkthrough in [docs/top-down-components.md](./top-down-components.md).

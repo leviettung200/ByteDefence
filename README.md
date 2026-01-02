@@ -46,6 +46,7 @@ Access:
 | [Testing Guide](docs/testing.md) | query examples, manual test steps, and Postman guide |
 | [Deployment Guide](infra/deployment.md) | how to deploy to Azure using Bicep |
 | [Architecture Decisions](docs/architect-decisions.md) | trade-offs (WASM vs Server, SignalR, etc.) |
+| [Top-Down Components](docs/top-down-components.md) | walkthrough from solution level down to key methods |
 | [AI Usage](docs/ai-usage.md) | summary of AI tools used in development |
 | [GraphQL Schema](docs/schema.graphql) | complete API type definition |
 

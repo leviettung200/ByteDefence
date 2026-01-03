@@ -17,7 +17,6 @@ namespace ByteDefence.Api.Middleware;
 /// Architecture options:
 /// 1. Full validation: API validates JWT (default)
 /// 2. APIM trust: APIM validates JWT, API trusts the token (skip validation)
-/// 3. Gateway trust: App Service Gateway handles auth, API trusts headers
 /// </summary>
 public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
 {

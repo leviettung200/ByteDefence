@@ -27,6 +27,7 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
     private readonly JwtOptions _jwtOptions;
     private readonly TokenValidationParameters? _validationParameters;
     private readonly bool _skipJwtValidation;
+    private readonly JwtSecurityTokenHandler _tokenHandler;
 
     public JwtAuthenticationMiddleware(
         IConfiguration configuration,
@@ -36,6 +37,7 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
         _configuration = configuration;
         _logger = logger;
         _jwtOptions = jwtOptions.Value;
+        _tokenHandler = new JwtSecurityTokenHandler();
 
         // Configuration option to skip JWT validation when APIM/Gateway handles it
         _skipJwtValidation = configuration.GetValue<bool>("Auth:SkipJwtValidation");
@@ -121,8 +123,7 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
     {
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
+            var jwtToken = _tokenHandler.ReadJwtToken(token);
 
             var claims = jwtToken.Claims.ToList();
             var identity = new ClaimsIdentity(claims, "Bearer", ClaimTypes.NameIdentifier, ClaimTypes.Role);
@@ -148,8 +149,7 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
 
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            var principal = handler.ValidateToken(token, _validationParameters, out _);
+            var principal = _tokenHandler.ValidateToken(token, _validationParameters, out _);
             return principal;
         }
         catch (Exception ex)

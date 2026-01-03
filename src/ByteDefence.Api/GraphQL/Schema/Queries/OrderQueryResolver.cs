@@ -74,12 +74,12 @@ public class OrderQueryResolver
     }
 
     /// <summary>
-    /// Demonstrates concurrent database queries using separate DbContext instances.
-    /// EF Core DbContext is not thread-safe, so we use IDbContextFactory for parallel queries.
+    /// Demonstrates concurrent database queries using a single DbContext.
+    /// EF Core allows multiple concurrent async queries on the same context.
     /// Returns orders and users count in parallel using Task.WhenAll.
     /// </summary>
     public async Task<OrderStats> GetOrderStats(
-        [Service] IDbContextFactory<AppDbContext> contextFactory,
+        [Service] AppDbContext context,
         [GlobalState("CurrentUser")] string? userId)
     {
         if (string.IsNullOrEmpty(userId))
@@ -87,30 +87,12 @@ public class OrderQueryResolver
             throw new UnauthorizedAccessException("Authentication required");
         }
 
-        // Execute all queries concurrently using separate DbContext instances
-        var totalOrdersTask = Task.Run(async () =>
-        {
-            await using var ctx = await contextFactory.CreateDbContextAsync();
-            return await ctx.Orders.CountAsync();
-        });
-
-        var totalUsersTask = Task.Run(async () =>
-        {
-            await using var ctx = await contextFactory.CreateDbContextAsync();
-            return await ctx.Users.CountAsync();
-        });
-
-        var pendingOrdersTask = Task.Run(async () =>
-        {
-            await using var ctx = await contextFactory.CreateDbContextAsync();
-            return await ctx.Orders.CountAsync(o => o.Status == OrderStatus.Pending);
-        });
-
-        var totalValueTask = Task.Run(async () =>
-        {
-            await using var ctx = await contextFactory.CreateDbContextAsync();
-            return await ctx.OrderItems.SumAsync(i => i.Price * i.Quantity);
-        });
+        // Execute all queries concurrently using a single DbContext
+        // EF Core supports multiple concurrent async operations on the same context
+        var totalOrdersTask = context.Orders.CountAsync();
+        var totalUsersTask = context.Users.CountAsync();
+        var pendingOrdersTask = context.Orders.CountAsync(o => o.Status == OrderStatus.Pending);
+        var totalValueTask = context.OrderItems.SumAsync(i => i.Price * i.Quantity);
 
         // Wait for all queries to complete
         await Task.WhenAll(totalOrdersTask, totalUsersTask, pendingOrdersTask, totalValueTask);

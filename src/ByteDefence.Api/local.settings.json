@@ -9,7 +9,7 @@
     "Jwt:Issuer": "ByteDefence",
     "Jwt:Audience": "ByteDefence-API",
     "Jwt:SigningKey": "Key-For-Development-Only-32Chars",
-    "Jwt:TokenLifetimeMinutes": "120",
+    "Jwt:TokenLifetimeMinutes": "60",
     "Auth:SkipJwtValidation": "false"
   },
   "Host": {

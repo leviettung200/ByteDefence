@@ -1,13 +1,18 @@
 # Testing Guide
 
-# Testing Guide
-
 ## Test Credentials
 
 | Role | Username | Password | Notes |
 |------|----------|----------|-------|
 | **Admin** | `admin` | `admin123` | Can delete orders |
 | **User** | `user` | `user123` | Standard access |
+
+### Configuration Options
+
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `Auth:SkipJwtValidation` | `false` (default) | API validates JWT token |
+| `Auth:SkipJwtValidation` | `true` | Trust APIM/Gateway validation, parse claims only |
 
 ## Tools
 

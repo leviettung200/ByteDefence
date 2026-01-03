@@ -7,6 +7,8 @@ using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using ByteDefence.Api.Options;
+using Microsoft.Extensions.Options;
 
 namespace ByteDefence.Api.Middleware;
 
@@ -22,33 +24,34 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<JwtAuthenticationMiddleware> _logger;
+    private readonly JwtOptions _jwtOptions;
     private readonly TokenValidationParameters? _validationParameters;
     private readonly bool _skipJwtValidation;
+    private readonly JwtSecurityTokenHandler _tokenHandler;
 
     public JwtAuthenticationMiddleware(
         IConfiguration configuration,
+        IOptions<JwtOptions> jwtOptions,
         ILogger<JwtAuthenticationMiddleware> logger)
     {
         _configuration = configuration;
         _logger = logger;
+        _jwtOptions = jwtOptions.Value;
+        _tokenHandler = new JwtSecurityTokenHandler();
 
         // Configuration option to skip JWT validation when APIM/Gateway handles it
         _skipJwtValidation = configuration.GetValue<bool>("Auth:SkipJwtValidation");
 
         if (!_skipJwtValidation)
         {
-            var secret = configuration["Jwt:Secret"] ?? JwtDefaults.DevelopmentSecret;
-            var issuer = configuration["Jwt:Issuer"] ?? JwtDefaults.DefaultIssuer;
-            var audience = configuration["Jwt:Audience"] ?? JwtDefaults.DefaultAudience;
-
             _validationParameters = new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.SigningKey)),
                 ValidateIssuer = true,
-                ValidIssuer = issuer,
+                ValidIssuer = _jwtOptions.Issuer,
                 ValidateAudience = true,
-                ValidAudience = audience,
+                ValidAudience = _jwtOptions.Audience,
                 ValidateLifetime = true,
                 ClockSkew = TimeSpan.Zero
             };
@@ -120,8 +123,7 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
     {
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            var jwtToken = handler.ReadJwtToken(token);
+            var jwtToken = _tokenHandler.ReadJwtToken(token);
 
             var claims = jwtToken.Claims.ToList();
             var identity = new ClaimsIdentity(claims, "Bearer", ClaimTypes.NameIdentifier, ClaimTypes.Role);
@@ -147,8 +149,7 @@ public class JwtAuthenticationMiddleware : IFunctionsWorkerMiddleware
 
         try
         {
-            var handler = new JwtSecurityTokenHandler();
-            var principal = handler.ValidateToken(token, _validationParameters, out _);
+            var principal = _tokenHandler.ValidateToken(token, _validationParameters, out _);
             return principal;
         }
         catch (Exception ex)

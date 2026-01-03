@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using Microsoft.Azure.Functions.Worker;
 using Microsoft.Azure.Functions.Worker.Http;
 using Microsoft.Extensions.Logging;
@@ -25,17 +24,19 @@ public class GraphQLFunction(
 
     [Function("graphql")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", "options", Route = "graphql")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "graphql")] HttpRequestData req,
         FunctionContext context)
     {
         _logger.LogInformation("GraphQL request received");
-
-        // Handle GET requests for GraphQL Playground/Banana Cake Pop
-        if (req.Method.Equals("GET", StringComparison.OrdinalIgnoreCase))
+        // Handle OPTIONS preflight
+        if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
         {
-            return await HandlePlaygroundRequest(req);
+            var optionsResponse = req.CreateResponse(HttpStatusCode.OK);
+            optionsResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+            optionsResponse.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+            optionsResponse.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            return optionsResponse;
         }
-
         // Parse the GraphQL request
         var body = await new StreamReader(req.Body).ReadToEndAsync();
         var request = JsonSerializer.Deserialize<GraphQLRequest>(body, _jsonOptions);
@@ -91,6 +92,8 @@ public class GraphQLFunction(
         // Create the response
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
+        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         // Serialize the result
         await using var stream = new MemoryStream();
@@ -101,29 +104,6 @@ public class GraphQLFunction(
 
         await response.WriteStringAsync(jsonResult);
 
-        return response;
-    }
-
-    private static async Task<HttpResponseData> HandlePlaygroundRequest(HttpRequestData req)
-    {
-        var response = req.CreateResponse(HttpStatusCode.OK);
-        response.Headers.Add("Content-Type", "application/json");
-
-        var info = new
-        {
-            service = "ByteDefence GraphQL API",
-            version = "1.0.0",
-            endpoint = "POST /api/graphql",
-            documentation = "Use a GraphQL client (Postman, GraphiQL, Banana Cake Pop) to query this endpoint.",
-            testCredentials = new
-            {
-                admin = new { username = "admin", password = "admin123" },
-                user = new { username = "user", password = "user123" }
-            },
-            exampleQuery = "mutation { login(input: { username: \"admin\", password: \"admin123\" }) { token user { id username role } } }"
-        };
-
-        await response.WriteAsJsonAsync(info);
         return response;
     }
 

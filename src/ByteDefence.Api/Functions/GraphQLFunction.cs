@@ -24,11 +24,19 @@ public class GraphQLFunction(
 
     [Function("graphql")]
     public async Task<HttpResponseData> Run(
-        [HttpTrigger(AuthorizationLevel.Anonymous, "post", Route = "graphql")] HttpRequestData req,
+        [HttpTrigger(AuthorizationLevel.Anonymous, "post", "options", Route = "graphql")] HttpRequestData req,
         FunctionContext context)
     {
         _logger.LogInformation("GraphQL request received");
-
+        // Handle OPTIONS preflight
+        if (req.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            var optionsResponse = req.CreateResponse(HttpStatusCode.OK);
+            optionsResponse.Headers.Add("Access-Control-Allow-Origin", "*");
+            optionsResponse.Headers.Add("Access-Control-Allow-Methods", "POST, OPTIONS");
+            optionsResponse.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+            return optionsResponse;
+        }
         // Parse the GraphQL request
         var body = await new StreamReader(req.Body).ReadToEndAsync();
         var request = JsonSerializer.Deserialize<GraphQLRequest>(body, _jsonOptions);
@@ -84,6 +92,8 @@ public class GraphQLFunction(
         // Create the response
         var response = req.CreateResponse(HttpStatusCode.OK);
         response.Headers.Add("Content-Type", "application/json");
+        response.Headers.Add("Access-Control-Allow-Origin", "*");
+        response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
         // Serialize the result
         await using var stream = new MemoryStream();

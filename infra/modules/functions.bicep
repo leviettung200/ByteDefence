@@ -107,7 +107,7 @@ resource functionApp 'Microsoft.Web/sites@2023-01-01' = {
           value: '@Microsoft.KeyVault(SecretUri=${signalRConnectionString})'
         }
         {
-          name: 'Jwt__Secret'
+          name: 'Jwt__SigningKey'
           value: '@Microsoft.KeyVault(SecretUri=${jwtSecret})'
         }
         {
